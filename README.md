@@ -1,74 +1,280 @@
-# Low Level Design – Notification System
-
-This repository documents the Low Level Design (LLD) discussion for designing a **Notification System**, commonly asked in backend and system design interviews.
-
-The goal is to design a **plug-and-play, extensible notification service** following SOLID principles and appropriate design patterns.
+# 📌 Notification Service – Low Level Design (LLD)
 
 ---
 
-## 📌 Problem Statement
+# 1️⃣ Problem Statement
 
-Design a **Notification System** that can send notifications to users through multiple channels such as:
+Design a scalable, extensible, and plug-and-play **Notification System** that can be integrated into any application.
 
-- Email
-- SMS
-- Popup notifications
+The system must:
 
-The system should be extensible enough to support additional channels (e.g. WhatsApp, Push Notifications) in the future **without modifying existing code**.
-
----
-
-## 🎯 Functional Requirements
-
-1. The system should allow sending notifications through multiple channels.
-2. A single notification may be delivered through **multiple channels simultaneously**.
-3. Notifications should be **dynamically customizable**, such as:
-   - Adding timestamps
-   - Adding signatures
-   - Adding headers or footers
-4. The system should store **all sent notifications** for history tracking.
-5. Every notification should be **logged** when sent.
+- Allow creation of notification objects
+- Support multiple delivery channels (Email, SMS, Popup, etc.)
+- Allow dynamic modification of notification content
+- Log notifications
+- Maintain notification history
+- Follow proper OOP and SOLID principles
+- Be implemented using pure Java (no frameworks)
 
 ---
 
-## ⚙️ Non-Functional Requirements
+# 2️⃣ Assumptions
 
-1. The system must follow **SOLID design principles**.
-2. It should be **plug-and-play**, requiring minimal client-side integration.
-3. The design should be **highly extensible**:
-   - Adding a new notification channel should not affect existing code.
-   - Adding new notification features should not require changes to core classes.
-4. The system should avoid tight coupling between components.
-5. The notification service should maintain a **single source of truth** for notification history.
+To clearly define the scope of this LLD problem, we assume:
 
----
-
-## ❓ Interview Clarifications (Assumptions)
-
-- Delivery mechanisms (Email/SMS/etc.) can be mocked or simulated.
-- Persistence can be in-memory for now.
-- Failure handling, retries, and async delivery are out of scope unless explicitly asked.
-- Authentication and user management are not part of this design.
+1. The system runs in a single JVM process.
+2. No external database is used (in-memory storage only).
+3. Email/SMS sending is simulated (console output).
+4. Logging is console-based.
+5. Concurrency handling is out of scope (initially).
+6. Notification history is stored in memory.
+7. The client should not know internal implementation details.
 
 ---
 
-## 🧠 Design Expectations
+# 3️⃣ Functional Requirements
 
-- Identify core entities and responsibilities.
-- Decide where interfaces are required vs concrete implementations.
-- Apply suitable design patterns where needed.
-- Keep the client API minimal and clean.
-- Ensure future extensibility is straightforward.
+1. Create a notification.
+2. Dynamically modify notification content:
+   - Add timestamp
+   - Add signature
+   - Future enhancements possible
+3. Send notification via:
+   - Email
+   - SMS
+   - Popup
+   - Easily extensible for future channels
+4. Log every notification.
+5. Store history of all notifications.
+6. Provide a simple public API:
+
+```
+sendNotification(notification)
+```
 
 ---
 
-## 🚀 Scope of Discussion
+# 4️⃣ Non-Functional Requirements
 
-This repository focuses on:
-- Requirement analysis
-- Design reasoning
-- Pattern selection
-- Clean object-oriented design
+- High extensibility (Open/Closed Principle)
+- Loose coupling
+- Plug-and-play architecture
+- Single instance of NotificationService
+- Clear separation of responsibilities
+- No tight coupling between:
+  - Notification creation
+  - Notification dispatching
+  - Channel sending logic
 
-Implementation details will be added incrementally during discussion.
+---
 
+![alt text](<Screenshot 2026-02-10 234143.png>)
+
+# 5️⃣ Thought Process
+
+When designing a notification system, we identify three major responsibilities:
+
+## 1️⃣ Notification Creation
+This is the object that contains message data.
+
+We want:
+- Different notification types
+- Dynamic modification of content
+
+This suggests:
+- **Abstraction**
+- **Decorator Pattern**
+
+---
+
+## 2️⃣ Notification Dispatching
+When a notification is created, multiple components may need to react:
+- Logger
+- Email sender
+- SMS sender
+- Popup sender
+
+This suggests:
+- One-to-many relationship
+- Decoupled event propagation
+
+This clearly maps to:
+- **Observer Pattern**
+
+---
+
+## 3️⃣ Channel-specific Sending Logic
+Each channel has its own sending mechanism:
+- Email logic
+- SMS logic
+- Popup logic
+
+We must:
+- Avoid if/else
+- Avoid modifying engine for new channels
+- Follow Open/Closed Principle
+
+This suggests:
+- **Strategy Pattern**
+
+---
+
+## 4️⃣ System Control
+We do not want multiple instances managing history.
+
+This suggests:
+- **Singleton Pattern**
+
+---
+
+# 6️⃣ Final Architecture
+
+```
+Client
+   ↓
+NotificationService (Singleton)
+   ↓
+NotificationObservable
+   ↓
+Observers
+   ├── LoggerObserver
+   └── NotificationEngine
+            ↓
+        Strategies
+            ├── EmailStrategy
+            ├── SMSStrategy
+            └── PopupStrategy
+```
+
+---
+
+# 7️⃣ Design Patterns Used
+
+## 1️⃣ Decorator Pattern
+Used to dynamically enhance notification content.
+
+Examples:
+- TimestampDecorator
+- SignatureDecorator
+
+Benefits:
+- Runtime flexibility
+- Open for extension
+- No modification to core class
+
+---
+
+## 2️⃣ Observer Pattern
+Used to notify multiple listeners when a notification is pushed.
+
+Observers:
+- LoggerObserver
+- NotificationEngine
+
+Benefits:
+- Loose coupling
+- One-to-many dependency
+- Scalable
+
+---
+
+## 3️⃣ Strategy Pattern
+Used to separate channel-specific logic.
+
+Strategies:
+- EmailStrategy
+- SMSStrategy
+- PopupStrategy
+
+Benefits:
+- Open/Closed Principle
+- No condition-based logic
+- Easy to extend
+
+---
+
+## 4️⃣ Singleton Pattern
+Used in NotificationService to ensure:
+
+- Single history storage
+- Centralized management
+- Controlled access
+
+---
+
+# 8️⃣ Key Design Principles Followed
+
+- SOLID Principles
+- Single Responsibility Principle
+- Open/Closed Principle
+- Dependency Inversion
+- Composition over Inheritance
+- Separation of Concerns
+
+---
+
+# 9️⃣ Responsibilities Breakdown
+
+| Component | Responsibility |
+|-----------|---------------|
+| INotification | Abstraction of notification |
+| SimpleNotification | Base notification implementation |
+| Decorators | Dynamic enhancement of content |
+| IObservable | Subject abstraction |
+| NotificationObservable | Maintains observers |
+| IObserver | Observer abstraction |
+| LoggerObserver | Logs notifications |
+| NotificationEngine | Delegates to strategies |
+| INotificationStrategy | Strategy abstraction |
+| Concrete Strategies | Channel-specific logic |
+| NotificationService | Orchestrator + History + Singleton |
+
+---
+
+# 🔟 Extensibility Scenarios
+
+This design allows:
+
+✔ Add WhatsAppStrategy without modifying existing code  
+✔ Add EncryptionDecorator without modifying existing notification  
+✔ Add FileLoggerObserver without touching engine  
+✔ Replace console logging with file logging  
+✔ Add persistence layer later  
+
+All without breaking Open/Closed Principle.
+
+---
+
+# 1️⃣1️⃣ Future Improvements
+
+- Make Singleton thread-safe
+- Add async processing
+- Add message queue integration
+- Add database persistence
+- Add retry mechanism
+- Add rate limiting
+- Add template engine
+- Add user preference filtering
+- Add priority-based dispatching
+
+---
+
+# 1️⃣2️⃣ Conclusion
+
+This design demonstrates:
+
+- Proper abstraction layering
+- Clear separation of responsibilities
+- Multiple pattern collaboration
+- Extensible and maintainable structure
+- Interview-ready LLD solution
+
+The system is:
+
+✔ Modular  
+✔ Extensible  
+✔ Decoupled  
+✔ Cleanly architected  
+✔ Framework-free  
+
+---
